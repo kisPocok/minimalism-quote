@@ -49,7 +49,6 @@ func (s *source) GrabQuote() (q string, err error) {
 			return q, errors.New("cannot find desired parts")
 		}
 	}
-	return q, errors.New("cannot find desired parts")
 }
 
 func findAttr(a []html.Attribute, key string) (html.Attribute, error) {
