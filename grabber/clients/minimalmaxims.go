@@ -2,21 +2,17 @@ package clients
 
 import (
 	"minimal/grabber"
-
-	"golang.org/x/net/html"
 )
 
-func Minimalmaxism() grabber.Source {
+type Source interface {
+	GrabQuote() (string, error)
+}
+
+func Minimalmaxism() Source {
 	return grabber.NewSource(
 		"https://minimalmaxims.com/",
 		"span",
 		"quotable-quote",
-		searchMinimalmaxismQuote,
+		grabber.SkipTheFirstTag,
 	)
-}
-
-func searchMinimalmaxismQuote(token html.Tokenizer) string {
-	token.Next() // skip paragraph
-	token.Next() // html.TextToken, the quote node
-	return token.Token().String()
 }

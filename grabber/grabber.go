@@ -15,10 +15,6 @@ func (q quote) String() string {
 	return q.content
 }
 
-type Source interface {
-	GrabQuote() (quote, error)
-}
-
 type source struct {
 	url           string
 	htmlTag       string
@@ -37,7 +33,7 @@ func NewSource(url, tag, class string, fn TokenizerFn) *source {
 	}
 }
 
-func (s *source) GrabQuote() (q quote, err error) {
+func (s *source) GrabQuote() (q string, err error) {
 	response, err := http.Get(s.url)
 	if err != nil {
 		return
@@ -52,8 +48,7 @@ func (s *source) GrabQuote() (q quote, err error) {
 		case actual == html.StartTagToken:
 			t := token.Token()
 			if t.Data == s.htmlTag && getClass(t.Attr) == s.htmlClassName {
-				q.content = s.handle(*token)
-				return
+				return s.handle(*token), nil
 			}
 		case actual == html.ErrorToken:
 			// We are done
@@ -80,4 +75,10 @@ func getAttr(attrName string) func(a []html.Attribute) string {
 		}
 		return attr.Val
 	}
+}
+
+func SkipTheFirstTag(token html.Tokenizer) string {
+	token.Next() // skip the first tag
+	token.Next() // html.TextToken, the quote node
+	return token.Token().String()
 }
