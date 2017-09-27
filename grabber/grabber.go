@@ -7,14 +7,6 @@ import (
 	"golang.org/x/net/html"
 )
 
-type quote struct {
-	content string
-}
-
-func (q quote) String() string {
-	return q.content
-}
-
 type source struct {
 	url           string
 	htmlTag       string
@@ -38,6 +30,9 @@ func (s *source) GrabQuote() (q string, err error) {
 	if err != nil {
 		return
 	}
+	if response.StatusCode != http.StatusOK {
+		return q, errors.New("response status is not 200")
+	}
 	defer response.Body.Close()
 
 	var getClass = getAttr("class")
@@ -51,11 +46,10 @@ func (s *source) GrabQuote() (q string, err error) {
 				return s.handle(*token), nil
 			}
 		case actual == html.ErrorToken:
-			// We are done
-			return
+			return q, errors.New("cannot find desired parts")
 		}
 	}
-	return q, nil
+	return q, errors.New("cannot find desired parts")
 }
 
 func findAttr(a []html.Attribute, key string) (html.Attribute, error) {
