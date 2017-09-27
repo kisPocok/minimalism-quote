@@ -17,8 +17,7 @@ func main() {
 		func(token html.Tokenizer) string {
 			token.Next() // skip paragraph
 			token.Next() // html.TextToken, the quote node
-			t := token.Token()
-			return t.String()
+			return token.Token().String()
 		})
 
 	c, err := grabQuote(source)
