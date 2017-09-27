@@ -10,7 +10,18 @@ import (
 )
 
 func main() {
-	c, err := grabQuote()
+	source := NewSource(
+		"https://minimalmaxims.com/",
+		"span",
+		"quotable-quote",
+		func(token html.Tokenizer) string {
+			token.Next() // skip paragraph
+			token.Next() // html.TextToken, the quote node
+			t := token.Token()
+			return t.String()
+		})
+
+	c, err := grabQuote(source)
 	if err != nil {
 		unix.Exit(1)
 	}
@@ -26,26 +37,39 @@ func (q quote) String() string {
 	return q.content
 }
 
-func grabQuote() (q quote, err error) {
-	response, err := http.Get("https://minimalmaxims.com/")
+type source struct {
+	url           string
+	htmlTag       string
+	htmlClassName string
+	handle        func(html.Tokenizer) string
+}
+
+func NewSource(url, tag, class string, fn func(html.Tokenizer) string) *source {
+	return &source{
+		url:           url,
+		htmlTag:       tag,
+		htmlClassName: class,
+		handle:        fn,
+	}
+}
+
+func grabQuote(s *source) (q quote, err error) {
+	response, err := http.Get(s.url)
 	if err != nil {
 		return
 	}
 	defer response.Body.Close()
 
+	var getClass = getAttr("class")
 	token := html.NewTokenizer(response.Body)
 	for {
 		actual := token.Next()
 		switch {
 		case actual == html.StartTagToken:
 			t := token.Token()
-			if t.Data == "span" {
-				if class(t.Attr) == "quotable-quote" {
-					token.Next() // skip paragraph
-					token.Next() // html.TextToken, the quote node
-					t := token.Token()
-					q.content = t.String()
-				}
+			if t.Data == s.htmlTag && getClass(t.Attr) == s.htmlClassName {
+				q.content = s.handle(*token)
+				return
 			}
 		case actual == html.ErrorToken:
 			// We are done
@@ -61,25 +85,15 @@ func findAttr(a []html.Attribute, key string) (html.Attribute, error) {
 			return v, nil
 		}
 	}
-	return html.Attribute{}, errors.New("Missing key!")
+	return html.Attribute{}, errors.New("missing attribute")
 }
 
-func class(a []html.Attribute) string {
-	attr, err := findAttr(a, "class")
-	if err != nil {
-		return ""
-	}
-	return attr.Val
-}
-
-/*
-var class = func() func(a []html.Attribute) string {
+func getAttr(attrName string) func(a []html.Attribute) string {
 	return func(a []html.Attribute) string {
-		attr, err := findAttr(a, "class")
+		attr, err := findAttr(a, attrName)
 		if err != nil {
 			return ""
 		}
 		return attr.Val
 	}
-}()
-*/
+}
