@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"net/http/httptest"
+
+	"golang.org/x/net/html"
 )
 
 const expected = "Pörkölt, jó kutya."
@@ -67,4 +69,12 @@ func emptyHTMLResponder(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	io.WriteString(w, `<html><body></body></html>`)
+}
+
+func TestMissingAttrShouldReturnEmptyString(t *testing.T) {
+	list := make([]html.Attribute, 0)
+	var getNonExistingAttr = getAttr("non-existent-one")
+	if getNonExistingAttr(list) != "" {
+		t.Error("getAttr should return empty string on fail")
+	}
 }
